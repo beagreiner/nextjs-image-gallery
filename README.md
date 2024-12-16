@@ -11,4 +11,4 @@ Die relevanten Dateien:
 * Websocket Server: pages/api/socket.js
 * Websocket Client: pages/gallery.js
 
-*Screenshots werden lokal gespeichert unter public/uploads
+* Screenshots werden lokal gespeichert unter public/uploads
