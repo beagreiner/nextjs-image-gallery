@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { broadcastImage } from "../../pages/api/socket";
 
 export const POST = async (req) => {
     try {
@@ -16,6 +17,8 @@ export const POST = async (req) => {
         const filePath = path.join(uploadsDir, fileName);
 
         fs.writeFileSync(filePath, buffer);
+
+        broadcastImage({ url: filePath });
 
         return new Response(JSON.stringify({ success: true, url: `/uploads/${fileName}` }), {
             status: 200,
