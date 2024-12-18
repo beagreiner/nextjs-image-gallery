@@ -1,50 +1,47 @@
-import { WebSocketServer } from "ws";
+import { Server } from "socket.io";
 
-let clients = []; // Store connected WebSocket clients
+let io; // Declare Socket.IO instance
 
-export default function handler(req, res) {
-    if (!res.socket.server.wss) {
-        console.log("Initializing WebSocket Server...");
-
-        // Initialize WebSocket Server
-        const wss = new WebSocketServer({ noServer: true });
-        res.socket.server.wss = wss;
-
-        // Handle WebSocket upgrade requests
-        res.socket.server.on("upgrade", (request, socket, head) => {
-            console.log("WebSocket upgrade received...");
-            wss.handleUpgrade(request, socket, head, (ws) => {
-                console.log("WebSocket connection established!");
-                wss.emit("connection", ws, request);
-            });
+export function getSocketIOInstance(server) {
+    if (!io) {
+        console.log("Manually initializing Socket.IO server...");
+        io = new Server(server, {
+            path: "/api/socket",
+            cors: {
+                origin: "http://localhost:3000",
+                methods: ["GET", "POST"],
+            },
         });
 
-        // Manage WebSocket connections
-        wss.on("connection", (ws) => {
-            console.log("Client connected!");
-            clients.push(ws);
-
-            ws.on("message", (message) => {
-                console.log("Message received:", message);
-            });
-
-            ws.on("close", () => {
-                console.log("Client disconnected.");
-                clients = clients.filter((client) => client !== ws);
+        io.on("connection", (socket) => {
+            console.log("Client connected:", socket.id);
+            console.log('aaa');
+            socket.on("disconnect", () => {
+                console.log("Client disconnected:", socket.id);
             });
         });
-    } else {
-        console.log("WebSocket Server already initialized.");
+        console.log('bbb');
     }
-
-    res.end(); // Complete the HTTP response
+    console.log('ccc');
+    console.log(io);
+    return io;
 }
 
-// Broadcast images to all connected clients
+export default function handler(req, res) {
+    if (!res.socket.server.io) {
+        res.socket.server.io = getSocketIOInstance(res.socket.server);
+    }
+    res.end();
+}
+
 export function broadcastImage(image) {
-    clients.forEach((client) => {
-        if (client.readyState === 1) {
-            client.send(JSON.stringify(image));
-        }
-    });
+    const clientFriendlyUrl = image.url.replace(/^.*\/public/, ""); // Strip '/home/...' up to '/public'
+    console.log("Broadcasting new image:", clientFriendlyUrl);
+    const payload = { url: clientFriendlyUrl };
+    console.log('broadcastImage', io);
+    if (io) {
+        io.emit("new-image", payload);
+    } else {
+        console.error("Socket.IO instance is not initialized.");
+    }
 }
